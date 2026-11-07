@@ -1,37 +1,59 @@
-# SA-AKI 28 天院内死亡风险预测工具
+# SA-AKI 28-Day In-Hospital Mortality Risk Calculator
 
-脓毒症相关急性肾损伤（SA-AKI）患者入住 ICU 后 28 天院内死亡风险预测。
-包含两个模块：ExtraTrees 机器学习模型（17 项特征）与简化整数评分卡（9 项变量）。
+A browser-based calculator for 28-day in-hospital mortality in patients with sepsis-associated acute kidney injury (SA-AKI). It combines an ExtraTrees machine-learning model (17 features) with a simplified integer scorecard (9 variables).
 
-## 使用说明
+## Usage
 
-纯前端实现，所有计算在浏览器本地完成，**不上传、不保存任何患者数据**。
-浏览器要求：Chrome / Edge 80 及以上。
+The application is entirely client-side. All calculations run locally in the browser; no patient data are uploaded, transmitted, or stored.
 
-## 目录结构
+Requirements: Chrome or Edge 80+ (for `DecompressionStream` support).
 
-| 文件 | 说明 |
-|---|---|
-| `index.html` | 应用入口（单页，无后端） |
-| `forest.bin.gz` | 模型森林（gzip，浏览器端解压） |
-| `meta.json` | 变量顺序、标准化参数、判定阈值 |
-| `verify_set.csv` | 200 例校验样本，用于页面加载时的自检 |
-| `.nojekyll` | 关闭 Jekyll 处理，避免构建失败 |
+## Files
 
-## 部署（GitHub Pages）
+| File | Description |
+| --- | --- |
+| `index.html` | Single-page application entry point; no backend required |
+| `forest.bin.gz` | ExtraTrees forest (gzip-compressed binary; decompressed in the browser) |
+| `meta.json` | Feature order, standardization parameters, and decision threshold |
+| `verify_set.csv` | Verification cases used by the in-page self-test |
+| `.nojekyll` | Disables Jekyll processing on GitHub Pages |
 
-1. 新建一个 **Public** 仓库，把本目录全部文件上传到仓库根目录。
-2. 仓库 **Settings → Pages → Build and deployment**：
-   Source 选 `Deploy from a branch`，Branch 选 `main`，目录选 `/ (root)`，保存。
-3. 等待 1–2 分钟，访问 `https://<用户名>.github.io/<仓库名>/`。
-4. 如需自定义域名：在仓库根目录新建名为 `CNAME` 的文件，内容写域名（不带 http://），
-   再到域名服务商处添加 CNAME 记录指向 `<用户名>.github.io`。
+## Deploying to GitHub Pages
 
-## 更新模型
+1. Create a **public** repository and upload all files in this directory to the repository root.
+2. In **Settings → Pages → Build and deployment**, set **Source** to `Deploy from a branch`, **Branch** to `main`, and **Folder** to `/ (root)`. Save.
+3. Wait 1–2 minutes, then open `https://<username>.github.io/<repository>/`.
+4. Optional custom domain: add a file named `CNAME` containing the domain (without `http://`), then create a CNAME DNS record pointing to `<username>.github.io`.
 
-在本地重新训练后，依次运行 `export_forest.R` → `make_deploy.py`，再把新的
-`forest.bin.gz`、`meta.json`、`index.html` 上传覆盖即可。
+## Updating the deployed site
 
-## 免责声明
+The live repository is <https://github.com/Wzf77/saaki-score/tree/main>.
 
-本工具仅用于科研与教学演示，不构成诊疗建议。最终临床决策须由医师结合完整病情判断。
+### Option A — GitHub web interface
+
+1. Open <https://github.com/Wzf77/saaki-score/tree/main>.
+2. Choose **Add file → Upload files**.
+3. Drag the updated `index.html` (and any other changed files) into the page.
+4. Commit the changes to `main`.
+5. GitHub Pages redeploys in 1–2 minutes. Hard-refresh the site if the browser serves a cached copy.
+
+### Option B — Git command line
+
+```bash
+git clone https://github.com/Wzf77/saaki-score.git
+cd saaki-score
+# copy the updated files into this directory
+git add index.html README.md
+git commit -m "Translate UI to English and refine design"
+git push origin main
+```
+
+Do not delete `.nojekyll`, `forest.bin.gz`, `meta.json`, or `verify_set.csv`; the application needs them at the repository root.
+
+## Updating the model
+
+After retraining, regenerate `forest.bin.gz`, `meta.json`, and `verify_set.csv` from the training pipeline, then replace the corresponding files in the repository. If the feature order or scorecard bins changed, update `index.html` as well. Commit the changes to `main`; GitHub Pages redeploys automatically.
+
+## Disclaimer
+
+This tool is intended for research and educational demonstration only. It does not constitute medical advice, and final clinical decisions must be made by clinicians using the full clinical picture.
