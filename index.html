@@ -93,6 +93,12 @@
   tfoot td{font-weight:600;border-top:1px solid var(--line);border-bottom:none}
   .empty{color:var(--muted);font-size:13px;padding:22px 4px;text-align:center}
   .note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:12px}
+  .bar.loading span{width:35%;background:var(--brand);animation:indeterminate 1.2s ease-in-out infinite}
+  @keyframes indeterminate{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+  .loading-title{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+                 font-size:22px;font-weight:600;color:var(--brand);margin:2px 0 12px}
+  .err-inline{background:#fdf4f1;border:1px solid #e7b8ae;color:#8c2b1e;border-radius:7px;
+              padding:9px 12px;font-size:12.5px;margin:0}
   footer{max-width:1280px;margin:0 auto;padding:18px 32px 40px;font-size:11.5px;
          color:#7a858c;line-height:1.75;border-top:1px solid var(--line)}
   footer b{color:#4b5860;font-weight:600}
@@ -131,7 +137,7 @@
   <b>Intended use:</b> This tool is for research and educational demonstration only and does not constitute medical advice; final clinical decisions must be made by clinicians using the full clinical picture.<br>
   <b>Model:</b> ExtraTrees (ranger, extratrees split; 500 trees; node-level export; in-browser inference matches the R implementation).<br>
   <b>Benchmark performance:</b> Temporal validation cohort AUROC 0.758; eICU-CRD external model-selection cohort AUROC 0.765. Scorecard AUROC: internal 0.733, temporal 0.718, eICU-CRD 0.742.<br>
-  <b>Runtime:</b> The hosted version loads <code>forest.bin.gz</code> and <code>meta.json</code> from the same directory. All calculations run locally in the browser; no patient data are uploaded or stored.
+  <b>Runtime:</b> The hosted version loads <code>forest.bin.gz</code> (6.65 MB) and <code>meta.json</code> from the same directory. The first machine-learning result may take a while on slow connections; the scorecard result is available immediately. All calculations run locally in the browser; no patient data are uploaded or stored.
 </footer>
 
 <!-- ==================== Core computation (DOM-independent, testable) ==================== -->
@@ -282,7 +288,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Core;
 
   const $ = s => document.querySelector(s);
   const form = $("#form"), errBox = $("#err"), out = $("#out"), hint = $("#hint");
-  let meta = null, forest = null;
+  let meta = null, forest = null, loadPromise = null, progressHandler = null, runToken = 0;
 
   /* ---- Build form ---- */
   function buildForm() {
@@ -357,27 +363,36 @@ if (typeof module !== "undefined" && module.exports) module.exports = Core;
   /* ---- Rendering ---- */
   const BAND_COLOR = { "Low": "var(--low)", "Moderate": "var(--mod)", "High": "var(--high)", "Very high": "var(--vhigh)" };
 
-  function render(vals, mlProb, sc) {
-    hint.style.display = "none";
-    out.style.display = "block";
-    const thr = meta.threshold;
+  function mlCardHTML(ml) {
+    if (ml.state === "loading") {
+      return `
+      <div class="res">
+        <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
+        <div class="res-body">
+          <div class="loading-title">Downloading model (6.65 MB)…</div>
+          <div class="bar loading"><span id="ml-progress-bar"></span></div>
+          <div class="note" id="ml-progress-text">Waiting for the model file…</div>
+        </div>
+      </div>`;
+    }
+    if (ml.state === "error") {
+      return `
+      <div class="res">
+        <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
+        <div class="res-body">
+          <p class="err-inline">Machine-learning result unavailable: ${ml.message}</p>
+          <p class="note">The scorecard result below is still valid. Check your network and try again.</p>
+        </div>
+      </div>`;
+    }
+    const thr = ml.threshold;
+    const mlProb = ml.prob;
     const higher = mlProb >= thr;
     const pct = (mlProb * 100).toFixed(1);
-    const scPct = (sc.prob * 100).toFixed(1);
-
     const mlTag = higher
       ? `<span class="tag" style="background:var(--vhigh)">Above threshold</span>`
       : `<span class="tag" style="background:var(--low)">Below threshold</span>`;
-
-    const scTag = `<span class="tag" style="background:${BAND_COLOR[sc.band.name]}">${sc.band.name}</span>`;
-
-    const rows = sc.rows.map(r => {
-      const shown = r.key === "cerebrovascular_disease" ? (r.value ? "Yes" : "No")
-        : (Number.isInteger(r.value) ? r.value : r.value.toFixed(2).replace(/\.?0+$/, ""));
-      return `<tr><td>${r.label}</td><td class="n">${shown}</td><td>${r.bin}</td><td class="n">${r.points}</td></tr>`;
-    }).join("");
-
-    out.innerHTML = `
+    return `
       <div class="res">
         <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
         <div class="res-body">
@@ -390,8 +405,18 @@ if (typeof module !== "undefined" && module.exports) module.exports = Core;
             <div class="metric"><span>eICU-CRD external model-selection AUROC</span><b>0.765</b></div>
           </div>
         </div>
-      </div>
+      </div>`;
+  }
 
+  function scorecardCardHTML(sc) {
+    const scPct = (sc.prob * 100).toFixed(1);
+    const scTag = `<span class="tag" style="background:${BAND_COLOR[sc.band.name]}">${sc.band.name}</span>`;
+    const rows = sc.rows.map(r => {
+      const shown = r.key === "cerebrovascular_disease" ? (r.value ? "Yes" : "No")
+        : (Number.isInteger(r.value) ? r.value : r.value.toFixed(2).replace(/\.?0+$/, ""));
+      return `<tr><td>${r.label}</td><td class="n">${shown}</td><td>${r.bin}</td><td class="n">${r.points}</td></tr>`;
+    }).join("");
+    return `
       <div class="res">
         <div class="res-head">SA-AKI simplified scorecard (9 variables, 0–${sc.max} points)</div>
         <div class="res-body">
@@ -408,12 +433,31 @@ if (typeof module !== "undefined" && module.exports) module.exports = Core;
             <tfoot><tr><td colspan="3">Total</td><td class="n">${sc.total}</td></tr></tfoot>
           </table>
         </div>
-      </div>
+      </div>`;
+  }
 
+  function render(ml, sc) {
+    hint.style.display = "none";
+    out.style.display = "block";
+    out.innerHTML = mlCardHTML(ml) + scorecardCardHTML(sc) + `
       <p class="note">The machine-learning model uses all 17 features; the scorecard uses 9 of them with integer bins. The two modules use different inputs, so their probabilities may differ.
       The scorecard probability is derived from the 0–${sc.max}-point score by a PDO transform (PDO −3.375, points offset 11) and is intended for risk stratification only.</p>
     `;
-    out.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function updateLoadingProgress(loaded, total) {
+    const txt = document.getElementById("ml-progress-text");
+    const bar = document.getElementById("ml-progress-bar");
+    if (!txt || !bar) return;
+    const mb = (loaded / 1e6).toFixed(2);
+    if (total > 0) {
+      const pct = Math.min(100, loaded / total * 100);
+      txt.textContent = `Downloading model… ${mb} / ${(total / 1e6).toFixed(2)} MB (${pct.toFixed(0)}%)`;
+      bar.parentElement.classList.remove("loading");
+      bar.style.width = pct + "%";
+    } else {
+      txt.textContent = `Downloading model… ${mb} MB`;
+    }
   }
 
   /* ---- Data source: embedded payload first, then same-directory files ---- */
@@ -434,68 +478,136 @@ if (typeof module !== "undefined" && module.exports) module.exports = Core;
     return await gunzipBytes(bin);
   }
 
+  async function readBody(response, onProgress) {
+    const encoded = response.headers.get("Content-Encoding");
+    const total = encoded ? 0 : Number(response.headers.get("Content-Length")) || 0;
+    if (!response.body || typeof response.body.getReader !== "function") {
+      const buf = await response.arrayBuffer();
+      if (onProgress) onProgress(buf.byteLength, buf.byteLength);
+      return buf;
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.byteLength;
+      if (onProgress) onProgress(loaded, total);
+    }
+    return await new Blob(chunks).arrayBuffer();
+  }
+
   // Try forest.bin.gz / forest.bin in order. The gzip magic bytes distinguish a
   // compressed payload from a host that already added Content-Encoding: gzip.
-  async function fetchForest() {
+  async function fetchForest(onProgress) {
+    let lastError = null;
     for (const name of ["forest.bin.gz", "forest.bin"]) {
-      const r = await fetch(name, { cache: "force-cache" });
+      let r;
+      try {
+        r = await fetch(name, { cache: "force-cache" });
+      } catch (e) {
+        lastError = e;
+        continue;
+      }
       if (!r.ok) continue;
-      const buf = await r.arrayBuffer();
+      const buf = await readBody(r, onProgress);
       const u8 = new Uint8Array(buf);
       const isGzip = u8.length > 2 && u8[0] === 0x1f && u8[1] === 0x8b;
       return isGzip ? await gunzipBytes(u8) : buf;
     }
-    throw new Error("Unable to read forest.bin.gz or forest.bin");
+    throw new Error(lastError
+      ? "Could not download the model file (" + lastError.message + ")."
+      : "Unable to read forest.bin.gz or forest.bin.");
   }
 
-  async function ensureLoaded() {
-    if (!meta) {
-      const el = embedded("META_JSON");
-      if (el) {
-        meta = JSON.parse(el.textContent);
-      } else {
-        const r = await fetch("meta.json", { cache: "no-store" });
-        if (!r.ok) throw new Error("Unable to read meta.json");
-        meta = await r.json();
-      }
+  async function ensureLoaded(onProgress) {
+    if (onProgress) progressHandler = onProgress;
+    if (forest) return { meta, forest };
+    if (!loadPromise) {
+      const p = (async () => {
+        if (!meta) {
+          const el = embedded("META_JSON");
+          if (el) {
+            meta = JSON.parse(el.textContent);
+          } else {
+            const r = await fetch("meta.json", { cache: "no-store" });
+            if (!r.ok) throw new Error("Unable to read meta.json");
+            meta = await r.json();
+          }
+        }
+        const el = embedded("PACKED_DATA");
+        let buf;
+        if (el) {
+          buf = await b64Gunzip(el.textContent);
+        } else {
+          buf = await fetchForest((loaded, total) => {
+            if (progressHandler) progressHandler(loaded, total);
+          });
+        }
+        forest = Core.buildForest(buf, meta);
+        return { meta, forest };
+      })();
+      loadPromise = p;
+      p.catch(() => { if (loadPromise === p) loadPromise = null; });
     }
-    if (!forest) {
-      const el = embedded("PACKED_DATA");
-      let buf;
-      if (el) {
-        buf = await b64Gunzip(el.textContent);
-      } else {
-        buf = await fetchForest();
-      }
-      forest = Core.buildForest(buf, meta);
-    }
-    return { meta, forest };
+    return await loadPromise;
   }
 
   $("#btn-calc").addEventListener("click", async () => {
     const { vals, errs } = collect();
     if (errs.length) { showError(errs); return; }
     showError([]);
+
+    let sc;
     try {
-      const { meta: m, forest: f } = await ensureLoaded();
+      sc = Core.scorecard(vals);
+    } catch (e) {
+      errBox.innerHTML = "Calculation failed: " + e.message;
+      errBox.classList.add("on");
+      return;
+    }
+
+    const token = ++runToken;
+    const btn = $("#btn-calc");
+    render({ state: "loading", loaded: 0, total: 0 }, sc);
+    out.scrollIntoView({ behavior: "smooth", block: "start" });
+    btn.disabled = true;
+    btn.textContent = "Downloading model…";
+
+    try {
+      const { meta: m, forest: f } = await ensureLoaded((loaded, total) => {
+        if (token === runToken) updateLoadingProgress(loaded, total);
+      });
+      if (token !== runToken) return;
       const x = Core.toVector(vals, m);
       const p = f.predict(x);
-      const sc = Core.scorecard(vals);
-      render(vals, p, sc);
+      render({ state: "done", prob: p, threshold: m.threshold }, sc);
     } catch (e) {
-      errBox.innerHTML = "Calculation failed: " + e.message +
-        (location.protocol === "file:" && !embedded("PACKED_DATA")
-          ? "<br>This file does not embed the model data, and forest.bin cannot be read under file://. Serve the directory over HTTP (for example, <b>python -m http.server 8000</b>) or use the hosted version."
-          : "");
-      errBox.classList.add("on");
+      if (token !== runToken) return;
+      const extra = location.protocol === "file:" && !embedded("PACKED_DATA")
+        ? " This file does not embed the model data, and forest.bin cannot be read under file://. Serve the directory over HTTP (for example, python -m http.server 8000) or use the hosted version."
+        : "";
+      render({ state: "error", message: e.message + extra }, sc);
+    } finally {
+      if (token === runToken) {
+        btn.disabled = false;
+        btn.textContent = "Calculate risk";
+      }
     }
   });
 
   $("#btn-reset").addEventListener("click", () => {
+    runToken++;
+    const btn = $("#btn-calc");
+    btn.disabled = false;
+    btn.textContent = "Calculate risk";
     form.reset();
     document.querySelectorAll("input.bad,select.bad").forEach(e => e.classList.remove("bad"));
     showError([]);
     updateDerived();
+    out.innerHTML = "";
     out.style.display = "none";
     hint.style.display = "block";
   });
