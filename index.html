@@ -1,649 +1,264 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Browser-based 28-day in-hospital mortality risk calculator for sepsis-associated acute kidney injury.">
-<title>SA-AKI 28-Day In-Hospital Mortality Risk Calculator</title>
+<title>SA-AKI 28-Day Mortality Risk Calculator</title>
 <style>
   :root{
-    --bg:#f5f2eb; --panel:#fffdf9; --line:#e3ddd2; --ink:#17222b; --muted:#6d7a82;
-    --brand:#173a52; --brand-deep:#102c40; --brand-soft:#e9eef0; --accent:#9a7b4f;
-    --low:#3d7a5f; --mod:#a97a2f; --high:#b45c34; --vhigh:#8f3030;
+    --deep:#0F4C81; --sky:#5EC5E8; --mint:#67D1B6; --coral:#FF785A;
+    --lav:#AA99DB; --mist:#ECEFF2; --ink:#1F2A33; --muted:#5F6B76;
+    --line:#D6DCE2; --bg:#F7F9FB; --card:#FFFFFF;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-       font:15px/1.65 "Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
-       -webkit-font-smoothing:antialiased}
-  header{background:linear-gradient(135deg,var(--brand-deep) 0%,var(--brand) 100%);
-         color:#f8f5ee;padding:30px 32px 26px;border-bottom:1px solid rgba(255,255,255,.14)}
-  header h1{margin:0;font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
-            font-size:27px;font-weight:600;line-height:1.25;letter-spacing:.01em}
-  header p{margin:7px 0 0;font-size:12.5px;line-height:1.6;color:rgba(248,245,238,.78);
-           letter-spacing:.02em}
-  main{max-width:1280px;margin:0 auto;
-       display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.95fr);
-       gap:20px;padding:24px 32px 10px;align-items:start}
-  @media (max-width:980px){
-    main{grid-template-columns:1fr;padding:18px 20px 8px}
-    header{padding:24px 20px 20px}
-  }
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-         padding:20px 22px;box-shadow:0 1px 2px rgba(23,34,43,.04),0 10px 30px rgba(23,34,43,.045)}
-  h2{display:flex;align-items:center;gap:12px;font-size:11px;margin:0 0 16px;
-     color:var(--brand);font-weight:700;letter-spacing:.15em;text-transform:uppercase}
-  h2::after{content:"";height:1px;flex:1;background:var(--line)}
-  .group{margin-bottom:18px}
-  .group-title{font-size:10.5px;color:var(--muted);margin:0 0 8px;
-               letter-spacing:.14em;text-transform:uppercase;font-weight:600}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 14px}
-  label{display:block;font-size:12.5px;margin-bottom:4px;color:#36434c;font-weight:500}
-  label .u{color:var(--muted);font-weight:400;font-size:11.5px}
-  input[type=number],select{width:100%;padding:9px 11px;border:1px solid #d9d3c7;
-       border-radius:7px;font-size:14px;background:#fff;color:var(--ink);font-family:inherit;
-       transition:border-color .15s ease,box-shadow .15s ease}
-  input[type=number]:focus,select:focus{outline:none;border-color:var(--brand);
-       box-shadow:0 0 0 3px rgba(23,58,82,.08)}
-  input.bad{border-color:#b3402f;background:#fdf4f1}
-  .derived{font-size:11.5px;color:var(--muted);margin-top:4px}
-  .actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-  button{padding:10px 22px;border-radius:7px;border:1px solid var(--brand);
-         background:var(--brand);color:#fff;font-size:13.5px;font-weight:600;
-         letter-spacing:.02em;cursor:pointer;font-family:inherit;
-         transition:background .15s ease,transform .15s ease,box-shadow .15s ease}
-  button:hover{background:var(--brand-deep);transform:translateY(-1px);
-               box-shadow:0 6px 16px rgba(16,44,64,.18)}
-  button.ghost{background:transparent;color:var(--brand);border-color:#c9d2d7}
-  button.ghost:hover{background:var(--brand-soft);box-shadow:none;transform:none}
-  button:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
-  .err{background:#fdf4f1;border:1px solid #e7b8ae;color:#8c2b1e;border-radius:8px;
-       padding:10px 13px;font-size:13px;margin-top:12px;display:none}
-  .err.on{display:block}
-  /* result cards */
-  .res{margin-bottom:16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;
-       background:#fff}
-  .res-head{background:linear-gradient(90deg,#f3efe6,#faf8f3);padding:10px 14px;
-            font-size:10.5px;color:var(--brand);font-weight:700;letter-spacing:.12em;
-            text-transform:uppercase;border-bottom:1px solid var(--line)}
-  .res-body{padding:16px}
-  .big{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
-       font-size:38px;font-weight:600;line-height:1.1;color:var(--brand)}
-  .big small{font-family:inherit;font-size:13px;font-weight:400;color:var(--muted);
-             margin-left:7px;letter-spacing:0}
-  .tag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;
-       font-weight:600;color:#fff;margin-left:9px;vertical-align:4px;letter-spacing:.02em}
-  .bar{height:6px;background:#ebe6dc;border-radius:99px;overflow:hidden;margin:12px 0 8px}
-  .bar span{display:block;height:100%;border-radius:99px;transition:width .25s ease}
-  .kv{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 14px;
-      font-size:12.5px;color:var(--muted);margin-top:6px}
-  .kv span{flex:1 1 auto;min-width:0}
-  .kv span:last-child{text-align:right}
-  .kv b{color:var(--ink);font-weight:600}
-  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;margin-top:16px}
-  .metric span{display:block;font-size:10.5px;color:var(--muted);line-height:1.45;
-               letter-spacing:.02em}
-  .metric b{display:block;font-size:13px;color:var(--ink);font-weight:600;margin-top:3px;
-            font-variant-numeric:tabular-nums}
-  @media (max-width:520px){.metrics{grid-template-columns:1fr}}
-  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
-  th,td{padding:6px 6px;border-bottom:1px solid #eee9df;text-align:left}
-  th{color:var(--muted);font-weight:600;font-size:10.5px;letter-spacing:.08em;
-     text-transform:uppercase}
-  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-  tfoot td{font-weight:600;border-top:1px solid var(--line);border-bottom:none}
-  .empty{color:var(--muted);font-size:13px;padding:22px 4px;text-align:center}
-  .note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:12px}
-  .bar.loading span{width:35%;background:var(--brand);animation:indeterminate 1.2s ease-in-out infinite}
-  @keyframes indeterminate{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
-  .loading-title{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
-                 font-size:22px;font-weight:600;color:var(--brand);margin:2px 0 12px}
-  .err-inline{background:#fdf4f1;border:1px solid #e7b8ae;color:#8c2b1e;border-radius:7px;
-              padding:9px 12px;font-size:12.5px;margin:0}
-  footer{max-width:1280px;margin:0 auto;padding:18px 32px 40px;font-size:11.5px;
-         color:#7a858c;line-height:1.75;border-top:1px solid var(--line)}
-  footer b{color:#4b5860;font-weight:600}
-  footer code{background:#eee9df;padding:1px 5px;border-radius:3px;font-size:11px}
-  #selftest{font-size:11.5px;color:var(--muted);margin-top:10px}
-  #selftest.ok{color:var(--low)} #selftest.fail{color:#8f3030}
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       font-size:14px;line-height:1.5}
+  header{background:var(--deep);color:#fff;padding:22px 26px}
+  header h1{margin:0;font-size:20px;font-weight:650;letter-spacing:.2px}
+  header p{margin:6px 0 0;font-size:12.5px;color:#D8E4EF}
+  .wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);
+        gap:18px;max-width:1240px;margin:18px auto;padding:0 18px 30px}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .panel h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  fieldset{border:0;border-top:1px solid var(--line);margin:0;padding:10px 0 4px}
+  fieldset:first-of-type{border-top:0}
+  legend{font-weight:640;font-size:12.5px;color:var(--deep);padding:0 6px 0 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+  .field .unit{color:#8A97A3;font-weight:400}
+  input[type=number],select{width:100%;padding:6px 8px;border:1px solid var(--line);
+        border-radius:6px;font-size:13px;background:#fff;color:var(--ink)}
+  input[type=number]:focus,select:focus{outline:2px solid #BFD7EA;border-color:var(--deep)}
+  .hint{font-size:11.5px;color:var(--muted);margin:8px 0 0}
+  .res-head{font-size:12px;font-weight:650;color:var(--muted);margin:0 0 4px}
+  .big{font-size:40px;font-weight:700;line-height:1.05;color:var(--deep)}
+  .big small{font-size:12px;font-weight:500;color:var(--muted);margin-left:6px}
+  .big.coral{color:#B4523C}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;color:#fff;margin-left:6px;vertical-align:middle}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px}
+  .metric{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);
+          border-bottom:1px dashed var(--line);padding-bottom:3px}
+  .metric b{color:var(--ink);font-weight:600}
+  .axis-wrap{margin:8px 0 4px}
+  .axis{position:relative;height:14px;background:linear-gradient(90deg,#9DD3C3,#E8D98A,#F2A58F);border-radius:7px}
+  .band{position:absolute;top:0;height:14px;background:rgba(15,76,129,.18);border-radius:7px}
+  .marker{position:absolute;top:-5px;width:4px;height:24px;border-radius:2px;transform:translateX(-2px)}
+  .marker.ml{background:var(--deep)}
+  .marker.card{background:var(--coral)}
+  .axis-labels{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:2px}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .dot.ml{background:var(--deep)} .dot.card{background:var(--coral)}
+  .note{font-size:11.5px;color:var(--muted);margin-top:10px}
+  .warn{background:#FFF6F2;border:1px solid #F3C9BC;color:#8A3B2A;padding:8px 10px;border-radius:8px;font-size:12px;margin-top:10px}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .empty{color:var(--muted);font-size:13px;padding:12px 0}
+  footer{max-width:1240px;margin:0 auto 26px;padding:0 18px;font-size:11.5px;color:var(--muted)}
+  .footerbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  code{background:var(--mist);padding:1px 5px;border-radius:4px;font-size:11.5px}
 </style>
 </head>
 <body>
 <header>
   <h1>SA-AKI 28-Day In-Hospital Mortality Risk Calculator</h1>
-  <p>Sepsis-associated acute kidney injury · Variables within 48 h of ICU admission · Machine-learning model + simplified integer scorecard</p>
+  <p>Sepsis-associated acute kidney injury · variables within 0–24 h of ICU admission · machine-learning model + simplified integer scorecard</p>
 </header>
 
-<main>
-  <section class="panel">
-    <h2>Patient information (all 17 fields required)</h2>
+<div class="wrap">
+  <div class="panel">
+    <h2>Patient inputs</h2>
     <form id="form" autocomplete="off"></form>
-    <div class="actions">
-      <button type="button" id="btn-calc">Calculate risk</button>
-      <button type="button" class="ghost" id="btn-reset">Reset</button>
-    </div>
-    <div class="err" id="err"></div>
-    <p class="note">The BUN/Cr ratio is calculated automatically from BUN and creatinine; creatinine is used only for this ratio and does not enter the model separately.</p>
-  </section>
+    <p class="hint">Enter values measured within the first 24 h of ICU admission. BUN/Cr is calculated automatically from BUN and creatinine. All calculations run locally; no data are uploaded.</p>
+  </div>
 
-  <section class="panel" id="result">
-    <h2>Prediction result</h2>
-    <div class="empty" id="hint">Complete the 17 fields on the left, then select “Calculate risk”.</div>
-    <div id="out" style="display:none"></div>
-    <div id="selftest"></div>
-  </section>
-</main>
+  <div>
+    <div class="panel" id="results">
+      <div class="empty" id="empty">Complete all fields to calculate risk.</div>
+      <div id="out" style="display:none"></div>
+    </div>
+  </div>
+</div>
 
 <footer>
-  <b>Intended use:</b> This tool is for research and educational demonstration only and does not constitute medical advice; final clinical decisions must be made by clinicians using the full clinical picture.<br>
-  <b>Model:</b> ExtraTrees (ranger, extratrees split; 500 trees; node-level export; in-browser inference matches the R implementation).<br>
-  <b>Benchmark performance:</b> Temporal validation cohort AUROC 0.758; eICU-CRD external model-selection cohort AUROC 0.765. Scorecard AUROC: internal 0.733, temporal 0.718, eICU-CRD 0.742.<br>
-  <b>Runtime:</b> The hosted version loads <code>forest.bin.gz</code> (6.65 MB) and <code>meta.json</code> from the same directory. The first machine-learning result may take a while on slow connections; the scorecard result is available immediately. All calculations run locally in the browser; no patient data are uploaded or stored.
+  <div class="footerbox">
+    <b>Model:</b> Gaussian process classifier (25 features), ABscore-selected best model; bedside scorecard (10 variables, 0–34 points).
+    Benchmark AUROC (temporal holdout / eICU-CRD external model-selection cohort):
+    ML 0.760 / 0.716; scorecard 0.706 / 0.667.
+    <br><b>Disclaimer:</b> research and educational use only; not medical advice. Final decisions must be made by clinicians.
+    <br><b>Runtime:</b> serve this directory over HTTP (for example <code>python -m http.server 8000</code>) or deploy to GitHub Pages; opening via <code>file://</code> cannot load the model files.
+  </div>
 </footer>
 
-<!-- ==================== Core computation (DOM-independent, testable) ==================== -->
-<script id="core-js">
-const Core = (function () {
-  "use strict";
-
-  const FEATURE_ORDER = ["age", "liver_disease", "cerebrovascular_disease", "vaso_any",
-    "urine_output", "heart_rate_max", "spo2_min", "hemoglobin_min", "mcv_mean", "rdw_max",
-    "pt_max", "aptt_max", "bun_max", "lactate_max", "bun_cr", "gcs_total_min", "bilirubin_max"];
-
-  /* ---------- Forest loading and traversal ---------- */
-  function buildForest(rawBuf, meta) {
-    const ab = rawBuf.buffer
-      ? rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
-      : rawBuf;
-    const dv = new DataView(ab);
-    const magic = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-    if (magic !== "RGFR") throw new Error("forest.bin file header error: " + magic);
-    const nTrees = dv.getUint32(8, true);
-    const nNodes = dv.getUint32(12, true);
-    const off = meta.offsets;
-    const treeIdx = new Int32Array(ab, off.tree, 2 * nTrees);
-    const left = new Int32Array(ab, off.left, nNodes);
-    const right = new Int32Array(ab, off.right, nNodes);
-    const value = new Float64Array(ab, off.value, nNodes);
-    const varid = new Uint8Array(ab, off.var, nNodes);
-
-    function predict(x) {
-      let acc = 0;
-      for (let t = 0; t < nTrees; t++) {
-        const start = treeIdx[2 * t];
-        let node = 0;
-        for (;;) {
-          const gi = start + node;
-          const v = varid[gi];
-          if (v === 255) { acc += value[gi]; break; }
-          node = x[v] <= value[gi] ? left[gi] : right[gi];
-        }
-      }
-      return acc / nTrees;
-    }
-    return { predict, nTrees, nNodes };
-  }
-
-  /* ---------- Input object -> standardized vector ---------- */
-  function toVector(values, meta) {
-    const x = new Float64Array(meta.features.length);
-    for (let i = 0; i < meta.features.length; i++) {
-      const name = meta.features[i];
-      let v;
-      if (name === "bun_cr") {
-        if (!(values.bun_max > 0) || !(values.creatinine_max > 0)) {
-          throw new Error("BUN and creatinine must both be positive to calculate BUN/Cr.");
-        }
-        v = values.bun_max / Math.max(values.creatinine_max, 0.01);
-      } else {
-        v = values[name];
-        if (v === undefined || v === null || v === "" || !isFinite(v)) {
-          throw new Error("Missing variable: " + name);
-        }
-      }
-      x[i] = (v - meta.mean[i]) / meta.sd[i];
-    }
-    return x;
-  }
-
-  /* ---------- Scorecard (Table_1_scorecard.csv) ---------- */
-  const CARD = {
-    pdo: -3.375, points0: 11.0,
-    a: 16.752054708022257, b: -4.869095763000252,
-    items: [
-      { key: "age", label: "Age", unit: "years", bins: [[-Infinity, 45, 0], [45, 65, 1], [65, Infinity, 2]] },
-      { key: "gcs_total_min", label: "Minimum GCS", unit: "", bins: [[-Infinity, 8, 5], [8, 12, 4], [12, 14, 3], [14, Infinity, 0]] },
-      { key: "lactate_max", label: "Lactate", unit: "mmol/L", bins: [[-Infinity, 2, 0], [2, 4, 1], [4, 8, 2], [8, Infinity, 6]] },
-      { key: "aptt_max", label: "APTT", unit: "s", bins: [[-Infinity, 35, 0], [35, 50, 1], [50, 70, 2], [70, Infinity, 3]] },
-      { key: "rdw_max", label: "RDW", unit: "%", bins: [[-Infinity, 14, 0], [14, 15.5, 1], [15.5, 17, 2], [17, Infinity, 4]] },
-      { key: "bun_max", label: "BUN", unit: "mg/dL", bins: [[-Infinity, 20, 0], [20, 40, 1], [40, 80, 3], [80, Infinity, 4]] },
-      { key: "spo2_min", label: "Minimum SpO₂", unit: "%", bins: [[-Infinity, 85, 3], [85, 90, 1], [90, Infinity, 0]] },
-      { key: "mcv_mean", label: "MCV", unit: "fL", bins: [[-Infinity, 100, 0], [100, Infinity, 2]] },
-      { key: "cerebrovascular_disease", label: "Cerebrovascular disease", unit: "", type: "bool", bins: [[-Infinity, 1, 0], [1, Infinity, 3]] }
-    ],
-    // Integer score bands: ≤8 / 9–12 / 13–16 / ≥17. Variable bins are left-closed, right-open.
-    bands: [
-      { name: "Low", range: "≤ 8", hi: 8, mort: 8.1, ci: "6.8–9.5", n: 1652 },
-      { name: "Moderate", range: "9–12", hi: 12, mort: 18.7, ci: "17.1–20.5", n: 2008 },
-      { name: "High", range: "13–16", hi: 16, mort: 33.8, ci: "31.4–36.4", n: 1383 },
-      { name: "Very high", range: "≥ 17", hi: Infinity, mort: 53.7, ci: "50.0–57.4", n: 685 }
-    ],
-    MAX_POINTS: 32
-  };
-
-  function binLabel(lo, hi) {
-    if (lo === -Infinity) return "< " + hi;
-    if (hi === Infinity) return "≥ " + lo;
-    return lo + "–" + hi;
-  }
-
-  function scorecard(values) {
-    let total = 0;
-    const rows = [];
-    for (const it of CARD.items) {
-      const v = Number(values[it.key]);
-      if (!isFinite(v)) throw new Error("Scorecard variable missing: " + it.key);
-      const bin = it.bins.find(b => v >= b[0] && v < b[1]);
-      if (!bin) throw new Error("Scorecard value outside bin range: " + it.key);
-      total += bin[2];
-      rows.push({
-        key: it.key, label: it.label, unit: it.unit, value: v,
-        bin: binLabel(bin[0], bin[1]), points: bin[2]
-      });
-    }
-    const logit = (CARD.a - total) / CARD.b;          // score = a - b·ln(odds)
-    const prob = 1 / (1 + Math.exp(-logit));
-    const band = CARD.bands.find(b => total <= b.hi) || CARD.bands[CARD.bands.length - 1];
-    return { total, rows, prob, band, max: CARD.MAX_POINTS };
-  }
-
-  return { buildForest, toVector, scorecard, CARD, FEATURE_ORDER };
-})();
-
-if (typeof module !== "undefined" && module.exports) module.exports = Core;
-</script>
-
-<!-- ==================== Page interaction ==================== -->
 <script>
-(function () {
-  "use strict";
-  const FIELDS = [
-    { g: "Basic information", key: "age", label: "Age", unit: "years", type: "num", min: 18, max: 120 },
-    { g: "Medical history", key: "cerebrovascular_disease", label: "Cerebrovascular disease", unit: "", type: "bool" },
-    { g: "Medical history", key: "liver_disease", label: "Chronic liver disease", unit: "", type: "bool" },
-    { g: "Treatment", key: "vaso_any", label: "Vasopressor use", unit: "", type: "bool" },
-    { g: "Organ function", key: "urine_output", label: "48-h cumulative urine output", unit: "mL", type: "num", min: 0, max: 30000 },
-    { g: "Organ function", key: "gcs_total_min", label: "Minimum GCS", unit: "points", type: "num", min: 3, max: 15 },
-    { g: "Vital signs", key: "heart_rate_max", label: "Maximum heart rate", unit: "beats/min", type: "num", min: 10, max: 300 },
-    { g: "Vital signs", key: "spo2_min", label: "Minimum SpO₂", unit: "%", type: "num", min: 50, max: 100 },
-    { g: "Laboratory", key: "hemoglobin_min", label: "Minimum hemoglobin", unit: "g/dL", type: "num", min: 1, max: 25 },
-    { g: "Laboratory", key: "mcv_mean", label: "Mean MCV", unit: "fL", type: "num", min: 40, max: 150 },
-    { g: "Laboratory", key: "rdw_max", label: "Maximum RDW", unit: "%", type: "num", min: 5, max: 50 },
-    { g: "Laboratory", key: "pt_max", label: "Maximum PT", unit: "s", type: "num", min: 5, max: 100 },
-    { g: "Laboratory", key: "aptt_max", label: "Maximum APTT", unit: "s", type: "num", min: 5, max: 300 },
-    { g: "Laboratory", key: "bun_max", label: "Maximum BUN", unit: "mg/dL", type: "num", min: 1, max: 300 },
-    { g: "Laboratory", key: "creatinine_max", label: "Maximum creatinine", unit: "mg/dL", type: "num", min: 0.1, max: 50, extra: true },
-    { g: "Laboratory", key: "lactate_max", label: "Maximum lactate", unit: "mmol/L", type: "num", min: 0.1, max: 50 },
-    { g: "Laboratory", key: "bilirubin_max", label: "Maximum total bilirubin", unit: "mg/dL", type: "num", min: 0, max: 100 }
-  ];
+let META = null, MODEL = null;
+const $ = (s) => document.querySelector(s);
 
-  const $ = s => document.querySelector(s);
-  const form = $("#form"), errBox = $("#err"), out = $("#out"), hint = $("#hint");
-  let meta = null, forest = null, loadPromise = null, progressHandler = null, runToken = 0;
-
-  /* ---- Build form ---- */
-  function buildForm() {
-    const groups = [];
-    for (const f of FIELDS) {
-      let g = groups.find(x => x.name === f.g);
-      if (!g) { g = { name: f.g, items: [] }; groups.push(g); }
-      g.items.push(f);
-    }
-    const html = groups.map(g => {
-      const cells = g.items.map(f => {
-        const id = "f_" + f.key;
-        let ctrl;
-        if (f.type === "bool") {
-          ctrl = `<select id="${id}"><option value="">Select</option>
-                  <option value="0">No</option><option value="1">Yes</option></select>`;
-          if (f.key === "vaso_any") {
-            ctrl = `<select id="${id}"><option value="">Select</option>
-                    <option value="0">Not used</option><option value="1">Used</option></select>`;
-          }
-        } else {
-          ctrl = `<input type="number" id="${id}" step="any" min="${f.min}" max="${f.max}"
-                        placeholder="${f.min}–${f.max}">`;
-        }
-        const extra = f.key === "bun_max" ? `<div class="derived" id="bun_cr_hint">BUN/Cr: pending</div>` : "";
-        return `<div><label for="${id}">${f.label}<span class="u">${f.unit ? " (" + f.unit + ")" : ""}</span></label>${ctrl}${extra}</div>`;
-      }).join("");
-      return `<div class="group"><p class="group-title">${g.name}</p><div class="grid">${cells}</div></div>`;
-    }).join("");
-    form.innerHTML = html;
-
-    // Live BUN/Cr hint; cerebrovascular and liver disease use No/Yes.
-    FIELDS.forEach(f => {
-      const el = document.getElementById("f_" + f.key);
-      if (el) el.addEventListener("input", updateDerived);
-    });
-  }
-
-  function updateDerived() {
-    const b = Number(document.getElementById("f_bun_max").value);
-    const c = Number(document.getElementById("f_creatinine_max").value);
-    const el = document.getElementById("bun_cr_hint");
-    if (el) el.textContent = (b > 0 && c > 0) ? "BUN/Cr: " + (b / Math.max(c, 0.01)).toFixed(2) : "BUN/Cr: pending";
-  }
-
-  /* ---- Validation ---- */
-  function collect() {
-    const vals = {}, errs = [];
-    document.querySelectorAll("input.bad,select.bad").forEach(e => e.classList.remove("bad"));
-    for (const f of FIELDS) {
-      const el = document.getElementById("f_" + f.key);
-      const raw = el.value.trim();
-      if (raw === "") { errs.push(f.label + " is required"); el.classList.add("bad"); continue; }
-      if (f.type === "bool") { vals[f.key] = Number(raw); continue; }
-      const v = Number(raw);
-      if (!isFinite(v)) { errs.push(f.label + " is not a valid number"); el.classList.add("bad"); continue; }
-      if (v < f.min || v > f.max) {
-        errs.push(`<b>${f.label}</b> is outside the accepted range (${f.min}–${f.max} ${f.unit}); please check the unit`);
-        el.classList.add("bad"); continue;
-      }
-      vals[f.key] = v;
-    }
-    return { vals, errs };
-  }
-
-  function showError(list) {
-    if (!list.length) { errBox.classList.remove("on"); errBox.innerHTML = ""; return; }
-    errBox.innerHTML = "Please correct the following " + list.length + " field(s):" + "<br>· " + list.join("<br>· ");
-    errBox.classList.add("on");
-  }
-
-  /* ---- Rendering ---- */
-  const BAND_COLOR = { "Low": "var(--low)", "Moderate": "var(--mod)", "High": "var(--high)", "Very high": "var(--vhigh)" };
-
-  function mlCardHTML(ml) {
-    if (ml.state === "loading") {
-      return `
-      <div class="res">
-        <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
-        <div class="res-body">
-          <div class="loading-title">Downloading model (6.65 MB)…</div>
-          <div class="bar loading"><span id="ml-progress-bar"></span></div>
-          <div class="note" id="ml-progress-text">Waiting for the model file…</div>
-        </div>
-      </div>`;
-    }
-    if (ml.state === "error") {
-      return `
-      <div class="res">
-        <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
-        <div class="res-body">
-          <p class="err-inline">Machine-learning result unavailable: ${ml.message}</p>
-          <p class="note">The scorecard result below is still valid. Check your network and try again.</p>
-        </div>
-      </div>`;
-    }
-    const thr = ml.threshold;
-    const mlProb = ml.prob;
-    const higher = mlProb >= thr;
-    const pct = (mlProb * 100).toFixed(1);
-    const mlTag = higher
-      ? `<span class="tag" style="background:var(--vhigh)">Above threshold</span>`
-      : `<span class="tag" style="background:var(--low)">Below threshold</span>`;
-    return `
-      <div class="res">
-        <div class="res-head">Machine-learning model (ExtraTrees, 500 trees)</div>
-        <div class="res-body">
-          <div class="big">${pct}<small>% 28-day in-hospital mortality probability</small>${mlTag}</div>
-          <div class="bar"><span style="width:${Math.min(100, mlProb * 100)}%;background:${higher ? "var(--vhigh)" : "var(--brand)"}"></span></div>
-          <div class="metrics">
-            <div class="metric"><span>Decision threshold</span><b>${thr.toFixed(3)}</b></div>
-            <div class="metric"><span>Temporal validation AUROC</span><b>0.758</b></div>
-            <div class="metric"><span>Sensitivity / Specificity</span><b>41.9% / 72.1%</b></div>
-            <div class="metric"><span>eICU-CRD external model-selection AUROC</span><b>0.765</b></div>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function scorecardCardHTML(sc) {
-    const scPct = (sc.prob * 100).toFixed(1);
-    const scTag = `<span class="tag" style="background:${BAND_COLOR[sc.band.name]}">${sc.band.name}</span>`;
-    const rows = sc.rows.map(r => {
-      const shown = r.key === "cerebrovascular_disease" ? (r.value ? "Yes" : "No")
-        : (Number.isInteger(r.value) ? r.value : r.value.toFixed(2).replace(/\.?0+$/, ""));
-      return `<tr><td>${r.label}</td><td class="n">${shown}</td><td>${r.bin}</td><td class="n">${r.points}</td></tr>`;
-    }).join("");
-    return `
-      <div class="res">
-        <div class="res-head">SA-AKI simplified scorecard (9 variables, 0–${sc.max} points)</div>
-        <div class="res-body">
-          <div class="big">${sc.total}<small>points</small>${scTag}</div>
-          <div class="bar"><span style="width:${(sc.total / sc.max) * 100}%;background:${BAND_COLOR[sc.band.name]}"></span></div>
-          <div class="metrics">
-            <div class="metric"><span>Corresponding mortality probability</span><b>${scPct}%</b></div>
-            <div class="metric"><span>Risk stratum</span><b>${sc.band.name} (${sc.band.range} points)</b></div>
-            <div class="metric" style="grid-column:1 / -1"><span>Observed mortality, development cohort</span><b>${sc.band.mort}% (95% CI ${sc.band.ci})</b></div>
-          </div>
-          <table>
-            <thead><tr><th>Variable</th><th class="n">Value</th><th>Bin</th><th class="n">Points</th></tr></thead>
-            <tbody>${rows}</tbody>
-            <tfoot><tr><td colspan="3">Total</td><td class="n">${sc.total}</td></tr></tfoot>
-          </table>
-        </div>
-      </div>`;
-  }
-
-  function render(ml, sc) {
-    hint.style.display = "none";
-    out.style.display = "block";
-    out.innerHTML = mlCardHTML(ml) + scorecardCardHTML(sc) + `
-      <p class="note">The machine-learning model uses all 17 features; the scorecard uses 9 of them with integer bins. The two modules use different inputs, so their probabilities may differ.
-      The scorecard probability is derived from the 0–${sc.max}-point score by a PDO transform (PDO −3.375, points offset 11) and is intended for risk stratification only.</p>
-    `;
-  }
-
-  function updateLoadingProgress(loaded, total) {
-    const txt = document.getElementById("ml-progress-text");
-    const bar = document.getElementById("ml-progress-bar");
-    if (!txt || !bar) return;
-    const mb = (loaded / 1e6).toFixed(2);
-    if (total > 0) {
-      const pct = Math.min(100, loaded / total * 100);
-      txt.textContent = `Downloading model… ${mb} / ${(total / 1e6).toFixed(2)} MB (${pct.toFixed(0)}%)`;
-      bar.parentElement.classList.remove("loading");
-      bar.style.width = pct + "%";
-    } else {
-      txt.textContent = `Downloading model… ${mb} MB`;
-    }
-  }
-
-  /* ---- Data source: embedded payload first, then same-directory files ---- */
-  const embedded = id => document.getElementById(id);
-
-  async function gunzipBytes(bytes) {
-    if (typeof DecompressionStream === "undefined") {
-      throw new Error("This browser does not support decompression. Please use Chrome or Edge 80+.");
-    }
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-    return await new Response(stream).arrayBuffer();
-  }
-
-  async function b64Gunzip(b64) {
-    const dec = atob(b64.replace(/\s+/g, ""));
-    const bin = new Uint8Array(dec.length);
-    for (let i = 0; i < dec.length; i++) bin[i] = dec.charCodeAt(i);
-    return await gunzipBytes(bin);
-  }
-
-  async function readBody(response, onProgress) {
-    const encoded = response.headers.get("Content-Encoding");
-    const total = encoded ? 0 : Number(response.headers.get("Content-Length")) || 0;
-    if (!response.body || typeof response.body.getReader !== "function") {
-      const buf = await response.arrayBuffer();
-      if (onProgress) onProgress(buf.byteLength, buf.byteLength);
-      return buf;
-    }
-    const reader = response.body.getReader();
-    const chunks = [];
-    let loaded = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      loaded += value.byteLength;
-      if (onProgress) onProgress(loaded, total);
-    }
-    return await new Blob(chunks).arrayBuffer();
-  }
-
-  // Try forest.bin.gz / forest.bin in order. The gzip magic bytes distinguish a
-  // compressed payload from a host that already added Content-Encoding: gzip.
-  async function fetchForest(onProgress) {
-    let lastError = null;
-    for (const name of ["forest.bin.gz", "forest.bin"]) {
-      let r;
-      try {
-        r = await fetch(name, { cache: "force-cache" });
-      } catch (e) {
-        lastError = e;
-        continue;
-      }
-      if (!r.ok) continue;
-      const buf = await readBody(r, onProgress);
-      const u8 = new Uint8Array(buf);
-      const isGzip = u8.length > 2 && u8[0] === 0x1f && u8[1] === 0x8b;
-      return isGzip ? await gunzipBytes(u8) : buf;
-    }
-    throw new Error(lastError
-      ? "Could not download the model file (" + lastError.message + ")."
-      : "Unable to read forest.bin.gz or forest.bin.");
-  }
-
-  async function ensureLoaded(onProgress) {
-    if (onProgress) progressHandler = onProgress;
-    if (forest) return { meta, forest };
-    if (!loadPromise) {
-      const p = (async () => {
-        if (!meta) {
-          const el = embedded("META_JSON");
-          if (el) {
-            meta = JSON.parse(el.textContent);
-          } else {
-            const r = await fetch("meta.json", { cache: "no-store" });
-            if (!r.ok) throw new Error("Unable to read meta.json");
-            meta = await r.json();
-          }
-        }
-        const el = embedded("PACKED_DATA");
-        let buf;
-        if (el) {
-          buf = await b64Gunzip(el.textContent);
-        } else {
-          buf = await fetchForest((loaded, total) => {
-            if (progressHandler) progressHandler(loaded, total);
-          });
-        }
-        forest = Core.buildForest(buf, meta);
-        return { meta, forest };
-      })();
-      loadPromise = p;
-      p.catch(() => { if (loadPromise === p) loadPromise = null; });
-    }
-    return await loadPromise;
-  }
-
-  $("#btn-calc").addEventListener("click", async () => {
-    const { vals, errs } = collect();
-    if (errs.length) { showError(errs); return; }
-    showError([]);
-
-    let sc;
-    try {
-      sc = Core.scorecard(vals);
-    } catch (e) {
-      errBox.innerHTML = "Calculation failed: " + e.message;
-      errBox.classList.add("on");
-      return;
-    }
-
-    const token = ++runToken;
-    const btn = $("#btn-calc");
-    render({ state: "loading", loaded: 0, total: 0 }, sc);
-    out.scrollIntoView({ behavior: "smooth", block: "start" });
-    btn.disabled = true;
-    btn.textContent = "Downloading model…";
-
-    try {
-      const { meta: m, forest: f } = await ensureLoaded((loaded, total) => {
-        if (token === runToken) updateLoadingProgress(loaded, total);
-      });
-      if (token !== runToken) return;
-      const x = Core.toVector(vals, m);
-      const p = f.predict(x);
-      render({ state: "done", prob: p, threshold: m.threshold }, sc);
-    } catch (e) {
-      if (token !== runToken) return;
-      const extra = location.protocol === "file:" && !embedded("PACKED_DATA")
-        ? " This file does not embed the model data, and forest.bin cannot be read under file://. Serve the directory over HTTP (for example, python -m http.server 8000) or use the hosted version."
-        : "";
-      render({ state: "error", message: e.message + extra }, sc);
-    } finally {
-      if (token === runToken) {
-        btn.disabled = false;
-        btn.textContent = "Calculate risk";
-      }
-    }
-  });
-
-  $("#btn-reset").addEventListener("click", () => {
-    runToken++;
-    const btn = $("#btn-calc");
-    btn.disabled = false;
-    btn.textContent = "Calculate risk";
-    form.reset();
-    document.querySelectorAll("input.bad,select.bad").forEach(e => e.classList.remove("bad"));
-    showError([]);
-    updateDerived();
-    out.innerHTML = "";
-    out.style.display = "none";
-    hint.style.display = "block";
-  });
-
-  /* ---- End-to-end self-test against R predictions ---- */
-  async function selftest() {
-    const box = $("#selftest");
-    try {
-      const { meta: m, forest: f } = await ensureLoaded();
-      const csvEl = embedded("VERIFY_CSV");
-      const txt = csvEl ? csvEl.textContent
-        : await (await fetch("verify_set.csv", { cache: "no-store" })).text();
-      const lines = txt.trim().split(/\r?\n/);
-      const head = lines[0].split(",");
-      const nFeat = head.length - 2;
-      let maxDiff = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const c = lines[i].split(",");
-        const x = new Float64Array(nFeat);
-        for (let j = 0; j < nFeat; j++) x[j] = Number(c[j + 1]);
-        const d = Math.abs(f.predict(x) - Number(c[nFeat + 1]));
-        if (d > maxDiff) maxDiff = d;
-      }
-      box.className = maxDiff < 1e-9 ? "ok" : "fail";
-      box.textContent = `Self-test: ${lines.length - 1} cases; maximum deviation from R predictions ${maxDiff.toExponential(2)}` +
-        (maxDiff < 1e-9 ? " (passed)" : " (failed)");
-    } catch (e) {
-      box.className = "fail";
-      box.textContent = "Self-test not run: " + e.message;
-    }
-  }
-
+async function load() {
+  META = await fetch("meta.json").then(r => r.json());
+  MODEL = await fetch("gpc_model.json").then(r => r.json());
   buildForm();
-  selftest();
-})();
-</script>
+  $("#empty").textContent = "Complete all fields to calculate risk.";
+}
 
+function fieldHTML(f) {
+  const label = META.labels[f] || f;
+  const unit = META.units[f] || "";
+  if (META.binary.includes(f)) {
+    return `<div class="field"><label>${label}</label>
+      <select data-feature="${f}"><option value="">—</option><option value="0">No</option><option value="1">Yes</option></select></div>`;
+  }
+  const step = /age/.test(f) ? "1" : "any";
+  return `<div class="field"><label>${label} <span class="unit">${unit ? "(" + unit + ")" : ""}</span></label>
+    <input type="number" step="${step}" data-feature="${f}" placeholder=""></div>`;
+}
+
+function buildForm() {
+  const form = $("#form");
+  let html = "";
+  for (const [group, feats] of Object.entries(META.groups)) {
+    html += `<fieldset><legend>${group}</legend><div class="grid">`;
+    for (const f of feats) {
+      if (f === "bun_cr") continue;
+      if (f === "creatinine_max") {
+        html += `<div class="field"><label>BUN <span class="unit">(mg/dL)</span></label>
+          <input type="number" step="any" id="bun_input" placeholder=""></div>`;
+      }
+      html += fieldHTML(f);
+    }
+    html += `</div></fieldset>`;
+  }
+  form.innerHTML = html;
+  form.addEventListener("input", compute);
+  form.addEventListener("change", compute);
+}
+
+function readValues() {
+  const vals = {};
+  let missing = 0;
+  document.querySelectorAll("[data-feature]").forEach(el => {
+    const f = el.dataset.feature;
+    const raw = el.value;
+    if (raw === "") { missing++; return; }
+    vals[f] = Number(raw);
+  });
+  const bun = $("#bun_input").value;
+  if (bun === "" || vals.creatinine_max === undefined || !(vals.creatinine_max > 0)) missing++;
+  else vals.bun_cr = Number(bun) / vals.creatinine_max;
+  return { vals, missing };
+}
+
+function mlProb(values) {
+  const n = MODEL.n_sv, d = MODEL.d, sv = MODEL.sv, al = MODEL.alpha, sig = MODEL.sigma;
+  const z = new Float64Array(d);
+  for (let j = 0; j < d; j++) {
+    const zs = (values[j] - META.mean[j]) / META.sd[j];
+    z[j] = (zs - META.center[j]) / META.scale[j];
+  }
+  let lat = 0;
+  for (let i = 0; i < n; i++) {
+    let d2 = 0; const off = i * d;
+    for (let j = 0; j < d; j++) { const t = z[j] - sv[off + j]; d2 += t * t; }
+    lat += al[i] * Math.exp(-sig * d2);
+  }
+  if (lat > 700) return 0;
+  if (lat < -700) return 1;
+  return 1 / (1 + Math.exp(lat));
+}
+
+function scorecard(vals) {
+  const S = META.scorecard;
+  let total = 0; const rows = [];
+  for (const v of S.vars) {
+    const x = vals[v];
+    const b = S.bins.find(b => b.v === v && x >= b.lo && x < b.hi);
+    const pts = b ? b.p : 0;
+    total += pts;
+    rows.push({ v, label: META.labels[v] || v, value: x, bin: b ? b.label : "—", points: pts });
+  }
+  const p = 1 / (1 + Math.exp((total + S.K - S.a) / S.b));
+  let band = S.bands[3];
+  if (total <= S.cuts[0]) band = S.bands[0];
+  else if (total <= S.cuts[1]) band = S.bands[1];
+  else if (total <= S.cuts[2]) band = S.bands[2];
+  return { total, p, band, rows };
+}
+
+function fmt(x) { return (100 * x).toFixed(1); }
+
+function compute() {
+  const { vals, missing } = readValues();
+  if (missing > 0) {
+    $("#out").style.display = "none";
+    $("#empty").style.display = "block";
+    $("#empty").textContent = `Complete all fields to calculate risk (${missing} missing).`;
+    return;
+  }
+  $("#empty").style.display = "none";
+  const out = $("#out"); out.style.display = "block";
+
+  const feat = META.features.map(f => vals[f]);
+  const pml = mlProb(feat);
+  const sc = scorecard(vals);
+  const mlHigh = pml >= META.threshold_ml;
+  const cardHigh = sc.total >= 11;
+  const agreement = mlHigh && cardHigh ? "Both estimates indicate high risk."
+                  : (!mlHigh && !cardHigh ? "Both estimates indicate lower risk."
+                  : "The two estimates disagree; interpret alongside the clinical picture.");
+
+  const lo = Math.min(pml, sc.p) * 100, hi = Math.max(pml, sc.p) * 100;
+  const mlPct = fmt(pml), scPct = fmt(sc.p);
+
+  out.innerHTML = `
+    <div class="res-head">Machine-learning model (GPC, 25 features)</div>
+    <div class="big">${mlPct}<small>% 28-day in-hospital mortality</small>
+      <span class="tag" style="background:${mlHigh ? "#B4523C" : "#2E7D5B"}">${mlHigh ? "Above threshold" : "Below threshold"}</span></div>
+    <div class="metrics">
+      <div class="metric"><span>Decision threshold</span><b>${META.threshold_ml.toFixed(3)}</b></div>
+      <div class="metric"><span>Holdout AUROC</span><b>0.760</b></div>
+      <div class="metric"><span>eICU-CRD AUROC</span><b>0.716</b></div>
+    </div>
+
+    <div style="height:14px"></div>
+    <div class="res-head">Bedside scorecard (10 variables)</div>
+    <div class="big coral">${scPct}<small>% 28-day in-hospital mortality</small></div>
+    <div class="metrics">
+      <div class="metric"><span>Total score</span><b>${sc.total} / ${META.scorecard.total_max}</b></div>
+      <div class="metric"><span>Risk tier</span><b>${sc.band}</b></div>
+      <div class="metric"><span>Holdout AUROC</span><b>0.706</b></div>
+      <div class="metric"><span>eICU-CRD AUROC</span><b>0.667</b></div>
+    </div>
+
+    <div style="height:14px"></div>
+    <div class="res-head">Both estimates on the same scale</div>
+    <div class="axis-wrap">
+      <div class="axis">
+        <div class="band" style="left:${lo}%;width:${Math.max(hi - lo, 0.6)}%"></div>
+        <span class="marker ml" style="left:${pml * 100}%"></span>
+        <span class="marker card" style="left:${sc.p * 100}%"></span>
+      </div>
+      <div class="axis-labels"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="legend"><span><i class="dot ml"></i>ML ${mlPct}%</span><span><i class="dot card"></i>Scorecard ${scPct}%</span></div>
+    </div>
+    <div class="note">Range ${lo.toFixed(1)}–${hi.toFixed(1)}%. The two probabilities differ because the ML model uses all 25 variables while the scorecard uses 10 of them with integer bins. The shaded range is shown for transparency and is <b>not</b> a validated ensemble.</div>
+    <div class="warn">${agreement}</div>
+
+    <div style="height:12px"></div>
+    <div class="res-head">Scorecard breakdown</div>
+    <table><thead><tr><th>Variable</th><th>Value</th><th>Bin</th><th class="num">Points</th></tr></thead>
+    <tbody>${sc.rows.map(r => `<tr><td>${r.label}</td><td>${Number(r.value).toFixed(2)}</td><td>${r.bin}</td><td class="num">${r.points}</td></tr>`).join("")}
+    <tr><td colspan="3"><b>Total</b></td><td class="num"><b>${sc.total}</b></td></tr></tbody></table>
+  `;
+}
+
+load().catch(err => {
+  $("#empty").textContent = "Could not load the model files. Serve this directory over HTTP (python -m http.server 8000) or use the hosted version.";
+  console.error(err);
+});
+</script>
 </body>
 </html>

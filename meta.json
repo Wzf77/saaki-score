@@ -1,17 +1,321 @@
 {
-  "format": "RGFR",
-  "version": 1,
-  "n_trees": 500,
-  "n_nodes": 1086178,
-  "n_vars": 17,
-  "offsets": {"tree": 20, "left": 4020, "right": 4348732, "value": 8693448, "var": 17382872},
-  "features": ["age", "liver_disease", "cerebrovascular_disease", "vaso_any", "urine_output", "heart_rate_max", "spo2_min", "hemoglobin_min", "mcv_mean", "rdw_max", "pt_max", "aptt_max", "bun_max", "lactate_max", "bun_cr", "gcs_total_min", "bilirubin_max"],
-  "mean": [64.210370111731848, 0.14233321690534403, 0.078064966818023052, 0.45827513966480449, 3196.3025000005528, 114.86606050008743, 89.226438188494498, 9.0975550122249391, 91.658560388445181, 16.116302638476323, 20.325778985507245, 53.503363636363638, 44.496159217877093, 3.7675855403054319, 19.604864762847168, 11.707994579945799,  3.154625961314379],
-  "sd": [16.168224165813154, 0.3493610691895922, 0.2682503696927378, 0.49829949318663325, 2537.7591978949254,   22.7017367115252, 6.6839364566059016, 2.0324109365852268, 7.2682658920161369, 2.6188937880853906, 13.683846380445789, 35.701838454575707, 28.832584913047249, 3.0117137225512538, 9.7768574496996319, 3.5082142375713148, 5.6730449576122002],
-  "threshold": 0.257,
-  "positive_class": "died",
-  "metrics": {"external_auc": 0.765, "holdout_auc": 0.7578},
-  "source": "machine/ml_models_done.Rdata :: models$ExtraTrees$finalModel",
-  "generated": "2026-10-31 22:59:35"
+  "model": "GPC (gaussprRadial, 25 features)",
+  "features": ["heart_rate_max", "resp_rate_max", "spo2_min", "urine_output", "lactate_max", "wbc_max", "hemoglobin_min", "pt_max", "aptt_max", "creatinine_max", "bun_cr", "bicarbonate_min", "sodium_max", "glucose_min", "rdw_max", "mcv_mean", "vaso_any", "mv_inv", "prbc_any", "cerebrovascular_disease", "cancer", "copd", "liver_disease", "age", "bmi"],
+  "labels": {
+    "heart_rate_max": "Heart rate (max) (bpm)",
+    "resp_rate_max": "Respiratory rate (max) (breaths/min)",
+    "spo2_min": "SpO2 (min) (%)",
+    "urine_output": "Urine output (mL/24h)",
+    "lactate_max": "Lactate (max) (mmol/L)",
+    "wbc_max": "WBC (max) (x10^9/L)",
+    "hemoglobin_min": "Hemoglobin (min) (g/dL)",
+    "pt_max": "PT (max) (s)",
+    "aptt_max": "APTT (max) (s)",
+    "creatinine_max": "Creatinine (max) (mg/dL)",
+    "bun_cr": "BUN/Creatinine ratio",
+    "bicarbonate_min": "Bicarbonate (min) (mmol/L)",
+    "sodium_max": "Sodium (max) (mmol/L)",
+    "glucose_min": "Glucose (min) (mg/dL)",
+    "rdw_max": "RDW (max) (%)",
+    "mcv_mean": "MCV (mean) (fL)",
+    "vaso_any": "Vasopressor use (0/1)",
+    "mv_inv": "Invasive mechanical ventilation (0/1)",
+    "prbc_any": "PRBC transfusion (0/1)",
+    "cerebrovascular_disease": "Cerebrovascular disease (0/1)",
+    "cancer": "Cancer (0/1)",
+    "copd": "COPD (0/1)",
+    "liver_disease": "Liver disease (0/1)",
+    "age": "Age (years)",
+    "bmi": "BMI (kg/m2)"
+  },
+  "units": {
+    "heart_rate_max": "bpm",
+    "resp_rate_max": "breaths/min",
+    "spo2_min": "%",
+    "urine_output": "mL/24h",
+    "lactate_max": "mmol/L",
+    "wbc_max": "x10^9/L",
+    "hemoglobin_min": "g/dL",
+    "pt_max": "s",
+    "aptt_max": "s",
+    "creatinine_max": "mg/dL",
+    "bun_cr": "",
+    "bicarbonate_min": "mmol/L",
+    "sodium_max": "mmol/L",
+    "glucose_min": "mg/dL",
+    "rdw_max": "%",
+    "mcv_mean": "fL",
+    "vaso_any": "0/1",
+    "mv_inv": "0/1",
+    "prbc_any": "0/1",
+    "cerebrovascular_disease": "0/1",
+    "cancer": "0/1",
+    "copd": "0/1",
+    "liver_disease": "0/1",
+    "age": "years",
+    "bmi": "kg/m2"
+  },
+  "binary": ["vaso_any", "mv_inv", "prbc_any", "cerebrovascular_disease", "cancer", "copd", "liver_disease"],
+  "groups": {
+    "Demographics": ["age", "bmi"],
+    "Vital signs and urine output": ["heart_rate_max", "resp_rate_max", "spo2_min", "urine_output"],
+    "Laboratory tests": ["lactate_max", "wbc_max", "hemoglobin_min", "pt_max", "aptt_max", "creatinine_max", "bicarbonate_min", "sodium_max", "glucose_min", "rdw_max", "mcv_mean"],
+    "Comorbidities": ["cerebrovascular_disease", "cancer", "copd", "liver_disease"],
+    "Organ support and treatments": ["vaso_any", "mv_inv", "prbc_any"]
+  },
+  "mean": [107.31375317, 28.79829618, 91.48518747, 1739.4480506, 2.96211214, 15.62376519, 9.96953543, 18.09114336, 45.27515951, 1.76856816, 21.05797293, 21.13231371, 139.80699878, 110.86357185, 15.52018783, 91.56002447, 0.33827975, 0.63497298, 0.21965742, 0.09227542, 0.0736646, 0.07376873, 0.10022198, 65.20069616, 30.33885804],
+  "sd": [21.79039506, 7.02247229, 5.72036752, 1331.25788665, 2.39753433, 12.63714854, 2.2534153, 10.97479499, 29.45656717, 1.7576393, 11.67565012, 4.94904207, 5.48011176, 36.55194388, 2.48245253, 7.21820829, 0.47314592, 0.48145979, 0.4140335, 0.28937556, 0.26120427, 0.26135406, 0.30029351, 16.02691396, 7.12038904],
+  "center": [-0.00023481, 0.00003128, 0.00028351, -0.00021586, -0.00020451, 0.00010255, -0.00019302, 0.00001528, -0.00035775, 0.00003473, 0.00003526, -0.00030573, 0.00008342, -0.00038711, 0.00019894, -0.00017409, 3.25836271e-17, 5.51196189e-17, 5.22416019e-17, -0.0000288, 0.00011483, 0.0002335, 4.44604183e-06, 0.0001482, 0.00032786],
+  "scale": [1.00013426, 1.00003591, 1.00002846, 0.99983082, 0.99971823, 0.99982438, 1.00009933, 1.00005985, 0.99983685, 1.00034874, 1.00018285, 1.0003571, 1.00031907, 1.00029708, 1.00032619, 1.00021871, 1, 1, 1, 1.00027602, 1.00010692, 1.00066112, 1.0001885, 1.00000159, 0.99987577],
+  "sigma": 0.03045986,
+  "threshold_ml": 0.1878,
+  "threshold_source": "internal 5-fold CV, Youden",
+  "metrics": {
+    "ml_holdout_auc": 0.7603,
+    "ml_eicu_auc": 0.7157,
+    "card_holdout_auc": 0.7061,
+    "card_eicu_auc": 0.6668
+  },
+  "scorecard": {
+    "a": 18.82614933,
+    "b": -5.4101064,
+    "K": -0.313,
+    "cuts": [7, 10, 13],
+    "bands": ["Low (0-7)", "Moderate (8-10)", "High (11-13)", "Very high (14-34)"],
+    "vars": ["bun_cr", "lactate_max", "rdw_max", "urine_output", "glucose_min", "cerebrovascular_disease", "age", "mcv_mean", "liver_disease", "resp_rate_max"],
+    "bins": [
+      {
+        "v": "urine_output",
+        "lo": -1000000000,
+        "hi": 400,
+        "p": 5,
+        "label": "< 400"
+      },
+      {
+        "v": "urine_output",
+        "lo": 400,
+        "hi": 800,
+        "p": 4,
+        "label": "400-800"
+      },
+      {
+        "v": "urine_output",
+        "lo": 800,
+        "hi": 1500,
+        "p": 2,
+        "label": "800-1500"
+      },
+      {
+        "v": "urine_output",
+        "lo": 1500,
+        "hi": 1000000000,
+        "p": 0,
+        "label": ">= 1500"
+      },
+      {
+        "v": "rdw_max",
+        "lo": -1000000000,
+        "hi": 14,
+        "p": 0,
+        "label": "< 14"
+      },
+      {
+        "v": "rdw_max",
+        "lo": 14,
+        "hi": 15.5,
+        "p": 1,
+        "label": "14-15.5"
+      },
+      {
+        "v": "rdw_max",
+        "lo": 15.5,
+        "hi": 17,
+        "p": 2,
+        "label": "15.5-17"
+      },
+      {
+        "v": "rdw_max",
+        "lo": 17,
+        "hi": 1000000000,
+        "p": 3,
+        "label": ">= 17"
+      },
+      {
+        "v": "lactate_max",
+        "lo": -1000000000,
+        "hi": 4,
+        "p": 0,
+        "label": "< 4"
+      },
+      {
+        "v": "lactate_max",
+        "lo": 4,
+        "hi": 8,
+        "p": 2,
+        "label": "4-8"
+      },
+      {
+        "v": "lactate_max",
+        "lo": 8,
+        "hi": 1000000000,
+        "p": 5,
+        "label": ">= 8"
+      },
+      {
+        "v": "liver_disease",
+        "lo": 0,
+        "hi": 0.5,
+        "p": 0,
+        "label": "No"
+      },
+      {
+        "v": "liver_disease",
+        "lo": 0.5,
+        "hi": 1.5,
+        "p": 3,
+        "label": "Yes"
+      },
+      {
+        "v": "glucose_min",
+        "lo": -1000000000,
+        "hi": 70,
+        "p": 2,
+        "label": "< 70"
+      },
+      {
+        "v": "glucose_min",
+        "lo": 70,
+        "hi": 140,
+        "p": 0,
+        "label": "70-140"
+      },
+      {
+        "v": "glucose_min",
+        "lo": 140,
+        "hi": 180,
+        "p": 2,
+        "label": "140-180"
+      },
+      {
+        "v": "glucose_min",
+        "lo": 180,
+        "hi": 1000000000,
+        "p": 3,
+        "label": ">= 180"
+      },
+      {
+        "v": "resp_rate_max",
+        "lo": -1000000000,
+        "hi": 20,
+        "p": 0,
+        "label": "< 20"
+      },
+      {
+        "v": "resp_rate_max",
+        "lo": 20,
+        "hi": 25,
+        "p": 1,
+        "label": "20-25"
+      },
+      {
+        "v": "resp_rate_max",
+        "lo": 25,
+        "hi": 30,
+        "p": 2,
+        "label": "25-30"
+      },
+      {
+        "v": "resp_rate_max",
+        "lo": 30,
+        "hi": 1000000000,
+        "p": 3,
+        "label": ">= 30"
+      },
+      {
+        "v": "bun_cr",
+        "lo": -1000000000,
+        "hi": 10,
+        "p": 1,
+        "label": "< 10"
+      },
+      {
+        "v": "bun_cr",
+        "lo": 10,
+        "hi": 20,
+        "p": 0,
+        "label": "10-20"
+      },
+      {
+        "v": "bun_cr",
+        "lo": 20,
+        "hi": 30,
+        "p": 1,
+        "label": "20-30"
+      },
+      {
+        "v": "bun_cr",
+        "lo": 30,
+        "hi": 1000000000,
+        "p": 3,
+        "label": ">= 30"
+      },
+      {
+        "v": "age",
+        "lo": -1000000000,
+        "hi": 40,
+        "p": 0,
+        "label": "< 40"
+      },
+      {
+        "v": "age",
+        "lo": 40,
+        "hi": 65,
+        "p": 1,
+        "label": "40-65"
+      },
+      {
+        "v": "age",
+        "lo": 65,
+        "hi": 80,
+        "p": 3,
+        "label": "65-80"
+      },
+      {
+        "v": "age",
+        "lo": 80,
+        "hi": 1000000000,
+        "p": 4,
+        "label": ">= 80"
+      },
+      {
+        "v": "mcv_mean",
+        "lo": -1000000000,
+        "hi": 100,
+        "p": 0,
+        "label": "< 100"
+      },
+      {
+        "v": "mcv_mean",
+        "lo": 100,
+        "hi": 1000000000,
+        "p": 2,
+        "label": ">= 100"
+      },
+      {
+        "v": "cerebrovascular_disease",
+        "lo": 0,
+        "hi": 0.5,
+        "p": 0,
+        "label": "No"
+      },
+      {
+        "v": "cerebrovascular_disease",
+        "lo": 0.5,
+        "hi": 1.5,
+        "p": 3,
+        "label": "Yes"
+      }
+    ],
+    "total_max": 34
+  }
 }
-
