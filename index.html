@@ -94,13 +94,16 @@
   </div>
 </footer>
 
+<script src="meta.js"></script>
+<script src="model.js"></script>
 <script>
 let META = null, MODEL = null;
 const $ = (s) => document.querySelector(s);
 
-async function load() {
-  META = await fetch("meta.json").then(r => r.json());
-  MODEL = await fetch("gpc_model.json").then(r => r.json());
+function load() {
+  META = window.META;
+  MODEL = window.MODEL;
+  if (!META || !MODEL) throw new Error("Model data not loaded: meta.js and model.js must sit next to index.html.");
   buildForm();
   $("#empty").textContent = "Complete all fields to calculate risk.";
 }
@@ -255,10 +258,12 @@ function compute() {
   `;
 }
 
-load().catch(err => {
-  $("#empty").textContent = "Could not load the model files. Serve this directory over HTTP (python -m http.server 8000) or use the hosted version.";
+try {
+  load();
+} catch (err) {
+  $("#empty").textContent = "Could not load the model data. Make sure meta.js and model.js are in the same folder as index.html.";
   console.error(err);
-});
+}
 </script>
 </body>
 </html>
