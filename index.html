@@ -219,12 +219,7 @@ function compute() {
   out.innerHTML = `
     <div class="res-head">Machine-learning model (GPC, 25 features)</div>
     <div class="big">${mlPct}<small>% 28-day in-hospital mortality</small>
-      <span class="tag" style="background:${mlHigh ? "#B4523C" : "#2E7D5B"}">${mlHigh ? "Above threshold" : "Below threshold"}</span></div>
-    <div class="metrics">
-      <div class="metric"><span>Decision threshold</span><b>${META.threshold_ml.toFixed(3)}</b></div>
-      <div class="metric"><span>Holdout AUROC</span><b>0.760</b></div>
-      <div class="metric"><span>eICU-CRD AUROC</span><b>0.716</b></div>
-    </div>
+      <span class="tag" style="background:${mlHigh ? "#B4523C" : "#2E7D5B"}">${mlHigh ? "Above 18.8%" : "Below 18.8%"}</span></div>
 
     <div style="height:14px"></div>
     <div class="res-head">Bedside scorecard (10 variables)</div>
@@ -232,8 +227,6 @@ function compute() {
     <div class="metrics">
       <div class="metric"><span>Total score</span><b>${sc.total} / ${META.scorecard.total_max}</b></div>
       <div class="metric"><span>Risk tier</span><b>${sc.band}</b></div>
-      <div class="metric"><span>Holdout AUROC</span><b>0.706</b></div>
-      <div class="metric"><span>eICU-CRD AUROC</span><b>0.667</b></div>
     </div>
 
     <div style="height:14px"></div>
